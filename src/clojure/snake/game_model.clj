@@ -69,11 +69,10 @@
 
 (defn send-state! [!game snake-ch exit-ch]
   (go-loop []
-    (let [[v c] (a/alts! [(a/timeout 100) exit-ch])]
+    (let [[v c] (a/alts! [exit-ch (a/timeout 100)] :priority true)]
       (when-not (= c exit-ch)
-        (do
-          (a/>! snake-ch (pr-str @!game))
-          (recur))))))
+        (a/>! snake-ch (pr-str @!game))
+        (recur)))))
 
 (defn wire-up-model! [!game snake-ch]
   (let [exit-ch (a/chan)]
