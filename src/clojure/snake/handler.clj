@@ -11,7 +11,7 @@
 (defn page-frame []
   (html5
    [:head
-    [:title "snake - CLJS Single Page Web Application"]
+    [:title "Snake - Likely Clojure School"]
     (include-js "//cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js")
     (include-js "//netdna.bootstrapcdn.com/bootstrap/3.0.0/js/bootstrap.min.js")
     (include-css "//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css")
@@ -22,10 +22,10 @@
      [:div#content]
      [:script (repl-connect-js)]]]))
 
-(defn snake-websocket [req]
-  (with-channel req snake-ch
-    (doto (atom nil)
-      (wire-up-model! snake-ch))))
+(let [client-joined! (wire-up-model!)]
+  (defn snake-websocket [req]
+    (with-channel req client-conn
+      (client-joined! client-conn))))
 
 (defroutes app-routes
   (GET "/" [] (response (page-frame)))

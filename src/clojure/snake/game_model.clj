@@ -8,7 +8,6 @@
 (defn new-game []
   (let [middle (/ b/board-size 2)]
     {:snake (list [middle middle] [(inc middle) middle])
-     :apple (new-apple)
      :direction :left}))
 
 (def movement-vector
@@ -28,20 +27,33 @@
                    (cons head (butlast tail)))
       :last-tail (last tail))))
 
-(defn check-apple-collision [{:keys [snake apple last-tail] :as game}]
+(defn move-snakes [game]
+  (update-in game [:clients] (fn [clients]
+                               (->> (for [[user-id client] clients]
+                                      [user-id (move-snake client)])
+                                    (into {})))))
+
+(defn check-apple-collisions [{:keys [snake apple last-tail] :as game}]
   (let [[head & _] snake]
     (cond-> game
       (= head apple) (-> (assoc :apple (new-apple))
                          (update-in [:snake] concat [last-tail])))))
 
+
+(defn send-state! [{:keys [client-conns clients apples]}]
+  (doseq [[user-id conn] client-conns]
+    (a/put! conn (pr-str {:clients clients
+                          :my-id user-id
+                          :apples apples}))))
+
 (defn apply-tick [game]
   (-> game
-      move-snake
-      check-apple-collision))
+      move-snakes
+      (doto send-state!)))
 
 (defn repeatedly-tick! [!game]
   (go-loop []
-    (a/<! (a/timeout 100))
+    (a/<! (a/timeout 200))
     (swap! !game apply-tick)
     (recur)))
 
@@ -54,30 +66,39 @@
 (defn valid-direction? [old new]
   ((valid-directions old) new))
 
-(defn apply-command [{:keys [direction] :as game} command]
-  (if-let [new-direction (valid-direction? direction command)]
-    (assoc game :direction new-direction)
-    game))
+(defn apply-command [game user-id command]
+  (let [direction (get-in game [:clients user-id :direction])]
+    (if-let [new-direction (valid-direction? direction command)]
+      (assoc-in game [:clients user-id :direction] new-direction)
+      game)))
 
-(defn apply-commands! [!game command-ch exit-ch]
+(defn remove-client [game user-id client-conn]
+  (-> game
+      (update-in [:clients] dissoc user-id)
+      (update-in [:client-conns] dissoc user-id)))
+
+(defn apply-commands! [!game user-id client-conn]
   (go-loop []
-    (if-let [{:keys [message]} (a/<! command-ch)]
+    (if-let [{:keys [message]} (a/<! client-conn)]
       (let [command (read-string message)]
-        (swap! !game apply-command command)
+        (swap! !game apply-command user-id command)
         (recur))
-      (a/close! exit-ch))))
+      
+      (swap! !game remove-client user-id client-conn))))
 
-(defn send-state! [!game snake-ch exit-ch]
-  (go-loop []
-    (let [[v c] (a/alts! [exit-ch (a/timeout 100)] :priority true)]
-      (when-not (= c exit-ch)
-        (a/>! snake-ch (pr-str @!game))
-        (recur)))))
+(defn add-client [game user-id client-conn]
+  (-> game
+      (assoc-in [:clients user-id] (new-game))
+      (assoc-in [:client-conns user-id] client-conn)))
 
-(defn wire-up-model! [!game snake-ch]
-  (let [exit-ch (a/chan)]
-    (doto !game
-      (reset! (new-game))
-      (repeatedly-tick!)
-      (apply-commands! snake-ch exit-ch)
-      (send-state! snake-ch exit-ch))))
+(defn wire-up-model! []
+  (let [!game (doto (atom {:apples (set (repeatedly 10 new-apple))})
+                (repeatedly-tick!))]
+    (def !test-game !game)
+
+    (fn client-joined! [client-conn]
+      (let [user-id (str (java.util.UUID/randomUUID))
+            exit-ch (a/chan)]
+        (doto !game
+          (swap! add-client user-id client-conn)
+          (apply-commands! user-id client-conn))))))

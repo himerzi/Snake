@@ -8,6 +8,7 @@
 
 (defprotocol BoardComponent
   (board->node [_])
+  (clear-board! [_])
   (render-cell! [_ cell color])
   (render-cells! [_ cells color])
   (command-ch [_])
@@ -28,6 +29,14 @@
                  b/block-size-px
                  b/block-size-px))))
 
+(defn clear-canvas! [$canvas]
+  (let [ctx (.getContext $canvas "2d")]
+    (set! (.-fillStyle ctx) "white")
+    (doto ctx
+      (.fillRect 0 0
+                 (* b/board-size b/block-size-px)
+                 (* b/board-size b/block-size-px)))))
+
 (defn canvas-board-component []
   (let [canvas-size (* b/block-size-px b/board-size)
         $canvas (node [:canvas {:height canvas-size
@@ -39,6 +48,8 @@
         (node
          [:div {:style {:margin-top "5em"}}
           $canvas]))
+      (clear-board! [_]
+        (clear-canvas! $canvas))
       (render-cell! [_ cell color]
         (color-cell! $canvas cell color))
       (render-cells! [_ cells color]
@@ -59,11 +70,16 @@
 
 (defn watch-game! [board !game]
   (add-watch !game ::renderer
-             (fn [_ _ old-game new-game]
-               (render-cells! board (:snake old-game) "white")
-               (render-cell! board (:apple old-game) "white")
-               (render-cells! board (:snake new-game) "black")
-               (render-cell! board (:apple new-game) "#e00"))))
+             (fn [_ _ _ {:keys [my-id clients apples]}]
+               (clear-board! board)
+               (render-cells! board
+                              (-> clients
+                                  (dissoc my-id)
+                                  vals
+                                  (->> (mapcat :snake)))
+                              "black")
+               (render-cells! board (get-in clients [my-id :snake]) "blue")
+               (render-cells! board apples "#a00"))))
 
 (defn bind-commands! [board model-command-ch]
   (a/pipe (command-ch board) model-command-ch))
