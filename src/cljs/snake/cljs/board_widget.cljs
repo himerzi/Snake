@@ -8,11 +8,18 @@
 
 (defprotocol BoardComponent
   (board->node [_])
-  (render-snake! [_ snake-cells color])
+  (render-cell! [_ cell color])
+  (render-cells! [_ cells color])
   (command-ch [_])
   (focus! [_]))
 
-(defn render-cell! [$canvas [x y] color]
+(def key->command
+  {kc/UP :up
+   kc/DOWN :down
+   kc/LEFT :left
+   kc/RIGHT :right})
+
+(defn color-cell! [$canvas [x y] color]
   (let [ctx (.getContext $canvas "2d")]
     (set! (.-fillStyle ctx) color)
     (doto ctx
@@ -20,12 +27,6 @@
                  (* y b/block-size-px)
                  b/block-size-px
                  b/block-size-px))))
-
-(def key->command
-  {kc/UP :up
-   kc/DOWN :down
-   kc/LEFT :left
-   kc/RIGHT :right})
 
 (defn canvas-board-component []
   (let [canvas-size (* b/block-size-px b/board-size)
@@ -38,9 +39,11 @@
         (node
          [:div {:style {:margin-top "5em"}}
           $canvas]))
-      (render-snake! [_ snake-cells color]
-        (doseq [cell snake-cells]
-          (render-cell! $canvas cell color)))
+      (render-cell! [_ cell color]
+        (color-cell! $canvas cell color))
+      (render-cells! [_ cells color]
+        (doseq [cell cells]
+          (color-cell! $canvas cell color)))
       (command-ch [_]
         (let [ch (a/chan)]
           (d/listen! $canvas :keydown
@@ -57,8 +60,10 @@
 (defn watch-game! [board !game]
   (add-watch !game ::renderer
              (fn [_ _ old-game new-game]
-               (render-snake! board (:snake old-game) "white")
-               (render-snake! board (:snake new-game) "black"))))
+               (render-cells! board (:snake old-game) "white")
+               (render-cell! board (:apple old-game) "white")
+               (render-cells! board (:snake new-game) "black")
+               (render-cell! board (:apple new-game) "#e00"))))
 
 (defn bind-commands! [board model-command-ch]
   (a/pipe (command-ch board) model-command-ch))

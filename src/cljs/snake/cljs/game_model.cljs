@@ -6,6 +6,7 @@
 (defn new-game []
   (let [middle (/ b/board-size 2)]
     {:snake (list [middle middle] [(inc middle) middle])
+     :apple (repeatedly 2 #(rand-int b/board-size))
      :direction :left}))
 
 (def movement-vector
@@ -29,7 +30,7 @@
 
 (defn repeatedly-tick! [!game]
   (go-loop []
-    (a/<! (a/timeout 300))
+    (a/<! (a/timeout 100))
     (swap! !game apply-tick)
     (recur)))
 
