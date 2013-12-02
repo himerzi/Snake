@@ -33,11 +33,17 @@
                                       [user-id (move-snake client)])
                                     (into {})))))
 
-(defn check-apple-collisions [{:keys [snake apple last-tail] :as game}]
-  (let [[head & _] snake]
-    (cond-> game
-      (= head apple) (-> (assoc :apple (new-apple))
-                         (update-in [:snake] concat [last-tail])))))
+(defn check-apple-collisions [{:keys [clients] :as game}]
+  (reduce (fn [{:keys [apples] :as game} user-id]
+            (let [[head & _] (get-in game [:clients user-id :snake])]
+              (cond-> game
+                (contains? apples head)
+                (-> (update-in [:apples] disj head)
+                    (update-in [:apples] conj (new-apple))
+                    (update-in [:clients user-id :snake]
+                               concat [(get-in game [:clients user-id :last-tail])])))))
+          game
+          (keys clients)))
 
 
 (defn send-state! [{:keys [client-conns clients apples]}]
@@ -49,6 +55,7 @@
 (defn apply-tick [game]
   (-> game
       move-snakes
+      check-apple-collisions
       (doto send-state!)))
 
 (defn repeatedly-tick! [!game]
