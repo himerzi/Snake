@@ -3,10 +3,13 @@
             [snake.cljs.board :as b])
   (:require-macros [cljs.core.async.macros :refer [go-loop]]))
 
+(defn new-apple []
+  (repeatedly 2 #(rand-int b/board-size)))
+
 (defn new-game []
   (let [middle (/ b/board-size 2)]
     {:snake (list [middle middle] [(inc middle) middle])
-     :apple (repeatedly 2 #(rand-int b/board-size))
+     :apple (new-apple)
      :direction :left}))
 
 (def movement-vector
@@ -15,18 +18,27 @@
    :right [1 0]
    :down [0 1]})
 
-(defn move [snake-cells direction]
-  (let [[head & tail] snake-cells]
-    (cons (map (comp #(mod % b/board-size)
-                     +)
-               head
-               (movement-vector direction))
+(defn move-snake [{:keys [snake direction] :as game}]
+  (let [[head & tail] snake]
+    (assoc game
+      :snake (cons (map (comp #(mod % b/board-size)
+                              +)
+                        head
+                        (movement-vector direction))
           
-          (cons head (butlast tail)))))
+                   (cons head (butlast tail)))
+      :last-tail (last tail))))
 
-(defn apply-tick [{:keys [snake direction] :as game}]
-  (assoc game
-    :snake (move snake direction)))
+(defn check-apple-collision [{:keys [snake apple last-tail] :as game}]
+  (let [[head & _] snake]
+    (cond-> game
+      (= head apple) (-> (assoc :apple (new-apple))
+                         (update-in [:snake] concat [last-tail])))))
+
+(defn apply-tick [game]
+  (-> game
+      move-snake
+      check-apple-collision))
 
 (defn repeatedly-tick! [!game]
   (go-loop []
