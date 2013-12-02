@@ -3,12 +3,14 @@
             [cljs.core.async :as a]
             [dommy.core :as d]
             [goog.events.KeyCodes :as kc])
-  (:require-macros [dommy.macros :refer [node sel1]]))
+  (:require-macros [dommy.macros :refer [node sel1]]
+                   [cljs.core.async.macros :refer [go]]))
 
 (defprotocol BoardComponent
   (board->node [_])
   (render-snake! [_ snake-cells color])
-  (command-ch [_]))
+  (command-ch [_])
+  (focus! [_]))
 
 (defn render-cell! [$canvas [x y] color]
   (let [ctx (.getContext $canvas "2d")]
@@ -46,7 +48,11 @@
               (when-let [command (key->command (.-keyCode e))]
                 (a/put! ch command)
                 (.preventDefault e))))
-          ch)))))
+          ch))
+      (focus! [_]
+        (go
+         (a/<! (a/timeout 200))
+         (.focus $canvas))))))
 
 (defn watch-game! [board !game]
   (add-watch !game ::renderer
@@ -60,5 +66,6 @@
 (defn make-board-widget [!game model-command-ch]
   (let [board (doto (canvas-board-component)
                 (watch-game! !game)
-                (bind-commands! model-command-ch))]
+                (bind-commands! model-command-ch)
+                (focus!))]
     (board->node board)))
