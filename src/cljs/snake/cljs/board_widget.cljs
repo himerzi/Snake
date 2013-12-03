@@ -55,4 +55,7 @@
                 (watch-game! !game)
                 (bind-commands! model-command-ch)
                 (focus!))]
+
+    ;; TODO you can test your component by putting test commands in here (e.g. try rendering a snake!)
+    
     (board->node board)))
