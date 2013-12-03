@@ -42,6 +42,7 @@
 
                        {:source-paths ["src/cljs"]
                         :id "prod"
+                        :crossover-path "src/cljx"
                         :compiler {:output-to "target/resources/js/snake.js"
                                    :optimizations :advanced
                                    :pretty-print false
