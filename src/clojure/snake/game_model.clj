@@ -5,6 +5,9 @@
 (defn new-apple []
   (repeatedly 2 #(rand-int b/board-size)))
 
+(defn new-apples []
+  (set (repeatedly 10 new-apple)))
+
 (defn new-game []
   (let [middle (/ b/board-size 2)]
     {:snake (list [middle middle] [(inc middle) middle])
@@ -58,12 +61,6 @@
       check-apple-collisions
       (doto send-state!)))
 
-(defn repeatedly-tick! [!game]
-  (go-loop []
-    (a/<! (a/timeout 100))
-    (swap! !game apply-tick)
-    (recur)))
-
 (def valid-directions
   {:left #{:up :down}
    :right #{:up :down}
@@ -78,6 +75,12 @@
     (if-let [new-direction (valid-direction? direction command)]
       (assoc-in game [:clients user-id :direction] new-direction)
       game)))
+
+(defn repeatedly-tick! [!game]
+  (go-loop []
+    (a/<! (a/timeout 100))
+    (swap! !game apply-tick)
+    (recur)))
 
 (defn remove-client [game user-id client-conn]
   (-> game
@@ -99,13 +102,12 @@
       (assoc-in [:client-conns user-id] client-conn)))
 
 (defn wire-up-model! []
-  (let [!game (doto (atom {:apples (set (repeatedly 10 new-apple))})
+  (let [!game (doto (atom {:apples (new-apples)})
                 (repeatedly-tick!))]
     (def !test-game !game)
 
     (fn client-joined! [client-conn]
-      (let [user-id (str (java.util.UUID/randomUUID))
-            exit-ch (a/chan)]
+      (let [user-id (str (java.util.UUID/randomUUID))]
         (doto !game
           (swap! add-client user-id client-conn)
           (apply-commands! user-id client-conn))))))
