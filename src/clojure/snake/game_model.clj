@@ -19,15 +19,20 @@
    :right [1 0]
    :down [0 1]})
 
+(defn wrap-around-board [n]
+  ;; assuming square board.
+  (mod n b/board-size))
+
+(defn new-head [head direction]
+  ;; (map + vec1 vec2) is vector addition
+  (map (comp wrap-around-board +)
+       head
+       (movement-vector direction)))
+
 (defn move-snake [{:keys [snake direction] :as game}]
   (let [[head & tail] snake]
     (assoc game
-      :snake (cons (map (comp #(mod % b/board-size)
-                              +)
-                        head
-                        (movement-vector direction))
-          
-                   (cons head (butlast tail)))
+      :snake (cons (new-head head direction) (butlast snake))
       :last-tail (last tail))))
 
 (defn move-snakes [game]
