@@ -8,6 +8,8 @@
 
 (defprotocol BoardComponent
   (board->node [_])
+  (focus! [_])
+
   ;; TODO what else does the board need to do?
   
   )
@@ -29,6 +31,11 @@
         (node
          [:div {:style {:margin-top "5em"}}
           $canvas]))
+      (focus! [_]
+        (go
+         (a/<! (a/timeout 200))
+         (.focus $canvas)))
+      
       ;; TODO implementations of any functions you put in BoardComponent
       
       )))
