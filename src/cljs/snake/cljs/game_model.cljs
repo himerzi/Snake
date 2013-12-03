@@ -4,6 +4,9 @@
             [cljs.reader :refer [read-string]])
   (:require-macros [cljs.core.async.macros :refer [go go-loop]]))
 
+(defn ws-url [path]
+  (str "ws://" (.-host js/location) path))
+
 (defn watch-state! [server-conn !game]
   (go-loop []
     (when-let [game-state (read-string (:message (a/<! server-conn)))]
@@ -18,6 +21,6 @@
 
 (defn wire-up-model! [!game command-ch]
   (go
-   (doto (a/<! (ws-ch "ws://localhost:3000/snake"))
+   (doto (a/<! (ws-ch (ws-url "/snake")))
      (watch-state! !game)
      (send-commands! command-ch))))
