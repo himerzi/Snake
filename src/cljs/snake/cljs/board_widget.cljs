@@ -1,5 +1,5 @@
 (ns snake.cljs.board-widget
-  (:require [snake.cljs.board :as b]
+  (:require [snake.board :as b]
             [cljs.core.async :as a]
             [dommy.core :as d]
             [goog.events.KeyCodes :as kc])

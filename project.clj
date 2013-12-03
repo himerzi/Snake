@@ -25,11 +25,14 @@
 
   :frodo/config-resource "snake-config.edn"
 
-  :source-paths ["src/clojure"]
+  :source-paths ["src/clojure"
+                 "src/cljx"]
 
   :resource-paths ["resources" "target/resources"]
 
-  :cljsbuild {:builds [{:source-paths ["src/cljs"]
+  :cljsbuild {:crossovers [snake.board]
+              :builds [{:source-paths ["src/cljs"]
+                        :crossover-path "src/cljx"
                         :compiler {:output-to "target/resources/js/snake.js"
                                    :output-dir "target/resources/js/"
                                    :optimizations :whitespace
