@@ -1,4 +1,4 @@
-(ns snake.cljs.game-model
+(ns snake.cljs.multiplayer-model
   (:require [cljs.core.async :as a]
             [chord.client :refer [ws-ch]]
             [cljs.reader :refer [read-string]])

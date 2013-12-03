@@ -1,7 +1,7 @@
 (ns snake.cljs.home
   (:require [dommy.core :as d]
             [snake.cljs.board-widget :refer [make-board-widget]]
-            [snake.cljs.game-model :refer [wire-up-model!]]
+            [snake.cljs.multiplayer-model :refer [wire-up-model!]]
             [cljs.core.async :as a])
   (:require-macros [dommy.macros :refer [node sel1]]
                    [cljs.core.async.macros :refer [go]]))
