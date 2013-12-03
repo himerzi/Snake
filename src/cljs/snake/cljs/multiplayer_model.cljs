@@ -8,16 +8,14 @@
   (str "ws://" (.-host js/location) path))
 
 (defn watch-state! [server-conn !game]
-  (go-loop []
-    (when-let [game-state (read-string (:message (a/<! server-conn)))]
-      (reset! !game game-state)
-      (recur))))
+  ;; TODO every time we receive a message from the server, update the game state
+  
+  )
 
 (defn send-commands! [server-conn command-ch]
-  (go-loop []
-    (when-let [command (a/<! command-ch)]
-      (a/>! server-conn (pr-str command))
-      (recur))))
+  ;; TODO send our commands to the server
+  
+  )
 
 (defn wire-up-model! [!game command-ch]
   (go
