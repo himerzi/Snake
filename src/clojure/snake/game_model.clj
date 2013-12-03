@@ -60,7 +60,7 @@
 
 (defn repeatedly-tick! [!game]
   (go-loop []
-    (a/<! (a/timeout 200))
+    (a/<! (a/timeout 100))
     (swap! !game apply-tick)
     (recur)))
 
