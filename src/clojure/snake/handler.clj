@@ -22,14 +22,15 @@
      [:div#content]
      [:script (repl-connect-js)]]]))
 
-(let [client-joined! (wire-up-model!)]
-  (defn snake-websocket [req]
-    (with-channel req client-conn
-      (client-joined! client-conn))))
+(defn snake-websocket []
+  (let [client-joined! (wire-up-model!)]
+    (fn [req]
+      (with-channel req client-conn
+        (client-joined! client-conn)))))
 
 (defroutes app-routes
   (GET "/" [] (response (page-frame)))
-  (GET "/snake" [] snake-websocket)
+  (GET "/snake" [] (snake-websocket))
   (resources "/js" {:root "js"}))
 
 (def app 
