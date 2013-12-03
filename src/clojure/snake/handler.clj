@@ -30,7 +30,8 @@
 
 (defroutes app-routes
   (GET "/" [] (response (page-frame)))
-  (GET "/snake" [] (snake-websocket))
+  (let [snake-handler (snake-websocket)]
+    (GET "/snake" [] snake-handler))
   (resources "/js" {:root "js"}))
 
 (def app 
