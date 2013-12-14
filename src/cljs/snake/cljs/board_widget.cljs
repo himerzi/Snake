@@ -9,10 +9,15 @@
 (defprotocol BoardComponent
   (board->node [_])
   (focus! [_])
-
+  (draw-point! [_ [x y]])
+  (draw-snake! [_ coll])
+  (clear-canvas! [_])
+  (commands-channel [_])
   ;; TODO what else does the board need to do?
   
   )
+
+
 
 (def key->command
   {kc/UP :up
@@ -36,26 +41,44 @@
          (a/<! (a/timeout 200))
          (.focus $canvas)))
       
-      ;; TODO implementations of any functions you put in BoardComponent
+      (draw-point! [_ [x y]]
+        (let [context (.getContext $canvas "2d")]
+          (.fillRect context (* 10 x) (* 10 y) 10 10)))
+
+      (draw-snake! [_ coll]
+        (doseq [coord coll]
+          (js/console.log coord)
+          (draw-point! _ coord)))
       
-      )))
+      (commands-channel [_]
+        (let [out (a/chan)]
+          (d/listen! $canvas "keydown"
+                     (fn [e]
+                       (a/put! out (key->command (.-keyCode e)))))
+          out))
+      
+      (clear-canvas! [_]
+        (let [context (.getContext $canvas "2d")]
+          (.clearRect context 0 0 canvas-size canvas-size))))))
 
 (defn watch-game! [board !game]
-  ;; TODO changes to !game to be reflected on screen
-  
-  )
+  (add-watch !game :game-watch (fn watch-fun
+                          [key !game old-state new-state]
+                          (clear-canvas! board)
+                          (doseq [[client-id {:keys [snake]}] (:clients new-state)]
+                            (draw-snake! board snake))
+                          (draw-snake! board (:apples new-state))
+                          )))
+
 
 (defn bind-commands! [board model-command-ch]
-  ;; TODO business-logic commands to be put onto model-command-ch
   
+  (a/pipe (commands-channel board) model-command-ch)
   )
 
 (defn make-board-widget [!game model-command-ch]
   (let [board (doto (canvas-board-component)
                 (watch-game! !game)
                 (bind-commands! model-command-ch)
-                (focus!))]
-
-    ;; TODO you can test your component by putting test commands in here (e.g. try rendering a snake!)
-    
+                (focus!))]    
     (board->node board)))

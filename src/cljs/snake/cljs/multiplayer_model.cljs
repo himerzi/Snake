@@ -8,13 +8,16 @@
   (str "ws://" (.-host js/location) path))
 
 (defn watch-state! [server-conn !game]
-  ;; TODO every time we receive a message from the server, update the game state
-  
-  )
+  (go-loop []
+           (let [message (read-string (:message (<! server-conn)))]
+             (js/console.log message)
+             (reset! !game message)
+             (recur))))
 
 (defn send-commands! [server-conn command-ch]
+  (a/pipe command-ch server-conn)
   ;; TODO send our commands to the server
-  
+
   )
 
 (defn wire-up-model! [!game command-ch]
@@ -30,7 +33,7 @@
              {:snake [[10 4] [10 5] [10 6]],
               :direction :up},
     
-             "2f594c2a-123e-4352-98a5-7e9621da9ec2"
+              "2f594c2a-123e-4352-98a5-7e9621da9ec2"
              {:snake [[16 26] [17 26]],
               :direction :up}},
 
